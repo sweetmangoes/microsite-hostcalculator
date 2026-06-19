@@ -87,6 +87,16 @@
       width: 100%;
       display: block !important;
     }
+
+    .print-avoid-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .print-keep-with-next {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
   }
 }
 

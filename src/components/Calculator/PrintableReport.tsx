@@ -21,6 +21,15 @@ interface PrintableReportProps {
   leadEmail?: string
 }
 
+function SignedAmount({ value, className = '' }: { value: number; className?: string }) {
+  return (
+    <span className={className}>
+      {value >= 0 ? '+' : '−'}
+      {formatCurrencyDetailed(Math.abs(value))}
+    </span>
+  )
+}
+
 export function PrintableReport({
   result,
   province,
@@ -41,6 +50,15 @@ export function PrintableReport({
     document.title = originalTitle
   }
 
+  const setupItems = [
+    { label: 'Province', value: province.name },
+    { label: 'Utility', value: utility },
+    { label: 'Rate plan', value: ratePlan },
+    { label: 'Charger', value: `${chargerSpeed} kW Level 2` },
+    { label: 'Sharing hours', value: `${hoursPerDay} hrs/day` },
+    { label: 'Energy shared', value: `${result.evConsumption.monthly.toFixed(0)} kWh/mo` },
+  ]
+
   return (
     <>
       <button
@@ -53,188 +71,165 @@ export function PrintableReport({
       </button>
 
       <div id="printable-report" className="hidden print:block">
-        <div className="p-8 font-sans text-foreground">
-          <header className="border-b border-gray-200 pb-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
-              Watt Share · Provincial Utility Rate Offset Report
+        <div className="p-6 font-sans text-[11pt] leading-snug text-foreground">
+          <header className="print-avoid-break border-b border-gray-200 pb-4">
+            <p className="text-[9pt] font-semibold uppercase tracking-widest text-green-700">
+              Watt Share · EV Charging Income Report
             </p>
-            <h1 className="mt-2 text-2xl font-bold">EV Charging Income Report</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {province.name} · Generated {new Date().toLocaleDateString('en-CA', { dateStyle: 'long' })}
+            <h1 className="mt-1.5 text-[20pt] font-bold leading-tight">Your Charging Income Estimate</h1>
+            <p className="mt-1 text-[10pt] text-gray-600">
+              {province.name} · {new Date().toLocaleDateString('en-CA', { dateStyle: 'long' })}
+              {(leadName || leadEmail) && (
+                <> · Prepared for {[leadName, leadEmail].filter(Boolean).join(', ')}</>
+              )}
             </p>
-            {(leadName || leadEmail) && (
-              <p className="mt-1 text-sm text-gray-600">
-                Prepared for: {[leadName, leadEmail].filter(Boolean).join(' · ')}
-              </p>
-            )}
           </header>
 
-          <section className="mt-6">
-            <h2 className="text-lg font-semibold">Net Earnings After Utility Costs</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Localized to {utility} using {ratePlan} rates -not generic US estimates.
+          <section className="print-avoid-break mt-5">
+            <h2 className="print-keep-with-next text-[12pt] font-semibold">Estimated Monthly Impact</h2>
+            <p className="mt-0.5 text-[10pt] text-gray-600">
+              Based on {utility} {ratePlan} rates for {province.name}.
             </p>
-            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-5">
-              <p className="text-sm font-medium text-green-800">Net Monthly Impact</p>
-              <p className="mt-1 text-3xl font-bold text-green-900">
-                {netMonthly >= 0 ? '+' : '-'}
-                {formatCurrencyDetailed(Math.abs(netMonthly))}
-              </p>
-              <p className="mt-2 text-sm text-green-800">
-                Gross charger income {formatCurrencyDetailed(result.evEarnings.monthly)} minus estimated
-                electricity bill {formatCurrencyDetailed(result.totalBill)}
-              </p>
-              <p className="mt-1 text-sm text-green-700">
-                Projected net annual impact: {netAnnual >= 0 ? '+' : '-'}
-                {formatCurrencyDetailed(Math.abs(netAnnual))}
-              </p>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <p className="text-[9pt] font-medium uppercase tracking-wide text-gray-500">Gross income</p>
+                <p className="mt-0.5 text-[14pt] font-bold tabular-nums">
+                  {formatCurrencyDetailed(result.evEarnings.monthly)}
+                </p>
+                <p className="mt-0.5 text-[9pt] text-gray-500">From charger sharing</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <p className="text-[9pt] font-medium uppercase tracking-wide text-gray-500">Est. bill</p>
+                <p className="mt-0.5 text-[14pt] font-bold tabular-nums">
+                  {formatCurrencyDetailed(result.totalBill)}
+                </p>
+                <p className="mt-0.5 text-[9pt] text-gray-500">Electricity costs</p>
+              </div>
+              <div className="rounded-lg border border-green-300 bg-green-50 px-3 py-2.5">
+                <p className="text-[9pt] font-medium uppercase tracking-wide text-green-700">Net impact</p>
+                <p className="mt-0.5 text-[14pt] font-bold tabular-nums text-green-900">
+                  <SignedAmount value={netMonthly} />
+                </p>
+                <p className="mt-0.5 text-[9pt] text-green-700">Per month</p>
+              </div>
             </div>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="text-lg font-semibold">Your Setup</h2>
-            <table className="mt-3 w-full text-sm">
-              <tbody>
-                <tr>
-                  <td className="py-1 text-gray-600">Province</td>
-                  <td className="py-1 text-right font-medium">{province.name}</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-gray-600">Utility</td>
-                  <td className="py-1 text-right font-medium">{utility}</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-gray-600">Rate Plan</td>
-                  <td className="py-1 text-right font-medium">{ratePlan}</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-gray-600">Charger Level</td>
-                  <td className="py-1 text-right font-medium">{chargerSpeed} kW (Level 2)</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-gray-600">Sharing Hours</td>
-                  <td className="py-1 text-right font-medium">{hoursPerDay} hrs/day</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-gray-600">Est. EV Energy Shared</td>
-                  <td className="py-1 text-right font-medium">
-                    {result.evConsumption.monthly.toFixed(0)} kWh/mo
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="text-lg font-semibold">Peak vs. Off-Peak Charging Revenue</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Monthly gross earnings if all {hoursPerDay} daily sharing hours were billed at each
-              peer-to-peer rate tier.
+            <p className="mt-2 text-[10pt] text-gray-600">
+              Projected annual net impact:{' '}
+              <span className="font-semibold text-green-800">
+                <SignedAmount value={netAnnual} />
+              </span>
             </p>
-            <table className="mt-3 w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-600">
-                  <th className="pb-2 font-medium">Period</th>
-                  <th className="pb-2 text-right font-medium">Rate</th>
-                  <th className="pb-2 text-right font-medium">Monthly Gross</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SHARING_RATE_SCENARIOS.map(({ label, rate, rateLabel }) => {
-                  const monthly = calculateScenarioMonthlyEarnings(chargerSpeed, hoursPerDay, rate)
-                  return (
-                    <tr key={label} className="border-b border-gray-100">
-                      <td className="py-2 font-medium">{label}</td>
-                      <td className="py-2 text-right">{rateLabel}</td>
-                      <td className="py-2 text-right font-semibold">{formatCurrency(monthly)}/mo</td>
-                    </tr>
-                  )
-                })}
-                <tr className="font-semibold">
-                  <td className="py-2">Calculated (time-weighted)</td>
-                  <td className="py-2 text-right text-gray-600">varies by schedule</td>
-                  <td className="py-2 text-right">{formatCurrencyDetailed(result.evEarnings.monthly)}/mo</td>
-                </tr>
-              </tbody>
-            </table>
           </section>
 
-          <section className="mt-8">
-            <h2 className="text-lg font-semibold">Monthly Earnings &amp; Bill Summary</h2>
-            <table className="mt-3 w-full text-sm">
-              <tbody>
-                <tr>
-                  <td className="py-1">Gross Charger Income</td>
-                  <td className="py-1 text-right font-medium">
-                    {formatCurrencyDetailed(result.evEarnings.monthly)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-1">Estimated Electricity Bill</td>
-                  <td className="py-1 text-right font-medium">
-                    {formatCurrencyDetailed(result.totalBill)}
-                  </td>
-                </tr>
-                <tr className="border-t border-gray-200 font-semibold">
-                  <td className="py-2">Net Monthly Impact</td>
-                  <td className="py-2 text-right">
-                    {netMonthly >= 0 ? '+' : '-'}
-                    {formatCurrencyDetailed(Math.abs(netMonthly))}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <section className="print-avoid-break mt-5">
+            <h2 className="print-keep-with-next text-[12pt] font-semibold">Your Setup</h2>
+            <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10pt]">
+              {setupItems.map(({ label, value }) => (
+                <div key={label} className="flex justify-between gap-4 border-b border-gray-100 py-1">
+                  <dt className="text-gray-600">{label}</dt>
+                  <dd className="text-right font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
 
-          <section className="mt-8">
-            <h2 className="text-lg font-semibold">Provincial Utility Bill Breakdown</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Estimated offset from your local distribution company using publicly available{' '}
-              {ratePlan}, TOU, ULO, and Tiered rate data where applicable.
-            </p>
-            <table className="mt-3 w-full text-sm">
-              <tbody>
-                <tr>
-                  <td className="py-1">Energy (Commodity)</td>
-                  <td className="py-1 text-right">{formatCurrencyDetailed(result.breakdown.commodity)}</td>
-                </tr>
-                <tr>
-                  <td className="py-1">Delivery</td>
-                  <td className="py-1 text-right">{formatCurrencyDetailed(result.breakdown.delivery)}</td>
-                </tr>
-                <tr>
-                  <td className="py-1">Regulatory</td>
-                  <td className="py-1 text-right">{formatCurrencyDetailed(result.breakdown.regulatory)}</td>
-                </tr>
-                {result.breakdown.oer > 0 && (
-                  <tr>
-                    <td className="py-1">Ontario Electricity Rebate (OER)</td>
-                    <td className="py-1 text-right text-green-700">
-                      -{formatCurrencyDetailed(result.breakdown.oer)}
+          <div className="mt-5 grid grid-cols-1 gap-5 print:grid-cols-2">
+            <section className="print-avoid-break">
+              <h2 className="print-keep-with-next text-[12pt] font-semibold">Revenue by Time Period</h2>
+              <p className="mt-0.5 text-[10pt] text-gray-600">
+                Gross monthly earnings if all {hoursPerDay} daily hours were billed at each rate tier.
+              </p>
+              <table className="mt-2 w-full text-[10pt]">
+                <thead>
+                  <tr className="border-b border-gray-300 text-left text-gray-600">
+                    <th className="pb-1.5 pr-2 font-medium">Period</th>
+                    <th className="pb-1.5 pr-2 text-right font-medium">Rate</th>
+                    <th className="pb-1.5 text-right font-medium">Monthly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SHARING_RATE_SCENARIOS.map(({ label, rate, rateLabel }) => {
+                    const monthly = calculateScenarioMonthlyEarnings(chargerSpeed, hoursPerDay, rate)
+                    return (
+                      <tr key={label} className="border-b border-gray-100">
+                        <td className="py-1.5 pr-2">{label}</td>
+                        <td className="py-1.5 pr-2 text-right text-gray-600">{rateLabel}</td>
+                        <td className="py-1.5 text-right font-medium tabular-nums">
+                          {formatCurrency(monthly)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="font-semibold">
+                    <td className="py-1.5 pr-2">Time-weighted</td>
+                    <td className="py-1.5 pr-2 text-right text-gray-600">By schedule</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.evEarnings.monthly)}
                     </td>
                   </tr>
-                )}
-                <tr>
-                  <td className="py-1">HST</td>
-                  <td className="py-1 text-right">{formatCurrencyDetailed(result.breakdown.hst)}</td>
-                </tr>
-                <tr className="border-t border-gray-200 font-semibold">
-                  <td className="py-2">Total Estimated Bill</td>
-                  <td className="py-2 text-right">{formatCurrencyDetailed(result.totalBill)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
+                </tbody>
+              </table>
+            </section>
 
-          <footer className="mt-10 border-t border-gray-200 pt-4 text-xs leading-relaxed text-gray-500">
+            <section className="print-avoid-break">
+              <h2 className="print-keep-with-next text-[12pt] font-semibold">Electricity Bill Breakdown</h2>
+              <p className="mt-0.5 text-[10pt] text-gray-600">
+                Estimated monthly bill using publicly available {ratePlan} rate data.
+              </p>
+              <table className="mt-2 w-full text-[10pt]">
+                <tbody>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-1.5">Energy (commodity)</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.breakdown.commodity)}
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-1.5">Delivery</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.breakdown.delivery)}
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-1.5">Regulatory</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.breakdown.regulatory)}
+                    </td>
+                  </tr>
+                  {result.breakdown.oer > 0 && (
+                    <tr className="border-b border-gray-100">
+                      <td className="py-1.5">Ontario Electricity Rebate</td>
+                      <td className="py-1.5 text-right tabular-nums text-green-700">
+                        −{formatCurrencyDetailed(result.breakdown.oer)}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-b border-gray-100">
+                    <td className="py-1.5">HST</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.breakdown.hst)}
+                    </td>
+                  </tr>
+                  <tr className="font-semibold">
+                    <td className="py-1.5">Total estimated bill</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {formatCurrencyDetailed(result.totalBill)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <footer className="print-avoid-break mt-6 border-t border-gray-200 pt-3 text-[8.5pt] leading-relaxed text-gray-500">
             <p>
-              Estimates based on publicly available provincial utility rates from the Ontario Energy
-              Board and your selected local distribution company. Actual earnings and bills may vary
-              based on consumption, time-of-use patterns, and rate changes.
+              Estimates use publicly available provincial utility rates from the Ontario Energy Board and
+              your selected local distribution company. Actual earnings and bills may vary with consumption,
+              time-of-use patterns, and future rate changes.
             </p>
-            <p className="mt-2">
+            <p className="mt-1.5">
               Peer-to-peer sharing rates: off-peak $0.30/kWh · mid-peak $0.40/kWh · on-peak $0.50/kWh.
-              Visit evchargingincome.ca for updated calculations.
+              Updated calculations at evchargingincome.ca.
             </p>
           </footer>
         </div>
