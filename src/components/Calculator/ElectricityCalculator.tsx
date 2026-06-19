@@ -364,6 +364,26 @@ const DisclaimerPanel = ({ provinceCode }: { provinceCode: string }) => {
   );
 };
 
+const FormSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="border-b border-border px-6 py-4">
+        <div className="h-5 w-40 rounded bg-muted" />
+        <div className="mt-2 h-4 w-56 rounded bg-muted" />
+      </div>
+      <div className="space-y-6 p-6">
+        <div className="space-y-2">
+          <div className="h-4 w-16 rounded bg-muted" />
+          <div className="h-12 rounded-xl bg-muted" />
+        </div>
+        <div className="h-24 rounded-xl bg-muted" />
+        <div className="h-10 rounded-xl bg-muted" />
+      </div>
+    </div>
+    <div className="h-12 rounded-xl bg-muted" />
+  </div>
+);
+
 export const ElectricityCalculator = ({
   onSelectionsChange,
 }: {
@@ -387,8 +407,13 @@ export const ElectricityCalculator = ({
   const [hoursPerDay, setHoursPerDay] = useState(4);
   const [chargerSpeed, setChargerSpeed] = useState(10);
   const [sharingStartHour, setSharingStartHour] = useState(19);
+  const [mounted, setMounted] = useState(false);
 
   const selectedProvince = getProvinceByCode(provinceCode);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     onSelectionsChange?.({
@@ -460,7 +485,10 @@ export const ElectricityCalculator = ({
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-      <div className="space-y-6">
+      {!mounted ? (
+        <FormSkeleton />
+      ) : (
+        <div className="space-y-6">
         <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <div className="border-b border-border px-6 py-4">
             <h2 className="text-lg font-semibold text-foreground">Your Charger Setup</h2>
@@ -614,7 +642,8 @@ export const ElectricityCalculator = ({
         <p className="text-center text-xs font-medium text-muted-foreground">
           Updated for 2026 Provincial Utility Rates
         </p>
-      </div>
+        </div>
+      )}
 
       <ResultsPanel
         quickEstimate={quickEstimate}
